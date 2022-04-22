@@ -1,158 +1,100 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { CalcButton, CalcDisplay } from "./calculator-style";
 
 function CalcElements(){
-    let [lastvalue, setLastValue]=useState('');
-    let [value,setValue]=useState('0');
-    let [dcheck, setDcheck]=useState(false); 
+    let [curval, setCurVal]=useState('0'); 
+    let [preval, setPreVal]=useState('0'); 
+    let [oper,setOper]=useState('');
     let [initialstate,setInitialState]=useState(true);
-
-    function count_chars (texto,char){
-        var contador = 0;
-        var i = 0;
-        for (i=0; i<texto.length;i++){
-            if (texto.charAt(i)===char){
-                contador +=1;
+    let [evalstate, setEvalState]=useState(false);  
+    
+    const Operation = (num1,num2,op) =>{
+        switch(op){
+            case '+':
+                num2 = (parseFloat(num1)+parseFloat(num2)).toString();
+                break;
+            case '-':
+                num2 = (parseFloat(num1)-parseFloat(num2)).toString();
+                break;
+            case '*':
+                num2 = (parseFloat(num1)*parseFloat(num2)).toString();
+                break;
+            case '/':
+                num2 = (parseFloat(num1)/parseFloat(num2)).toString();
+                break;
+            default:
+                break; 
             }
-        }
-        return contador;
+        return num2;
     }
-    const appendValue = (e) =>{
-        if(initialstate||value==='0'){
-            setValue(e.target.innerHTML); 
+    const AppendValue = (e) =>{
+        if(initialstate||curval==='0'){
+            setCurVal(e.target.innerHTML); 
             setInitialState(false);
             return;
         }
-        if(value.slice(-1)===')'){
+        if((e.target.innerHTML==='.'&&curval.includes('.'))||(e.target.innerHTML==='0'&&curval==='0')){
             return;
         }
-        if(e.target.innerHTML==='0' && ['+','-','*','/','('].includes(value.slice(-1))){
-            setValue(value.concat('0.'));
-            setDcheck(true);
-            return;
-        }
-        setValue(value.concat(e.target.innerHTML));   
-    }
-    const appendOper = (e)=>{
-        if(initialstate){ 
+        if(evalstate){
+            clear();
             setInitialState(false);
         }
-        if(['+','-','*','/','('].includes(value.slice(-1))){
-            return;
-        }   
-        setValue(value.concat(e.target.innerHTML));
-        setDcheck(false);
-        
+        setCurVal(curval.concat(e.target.innerHTML));
+        console.log(initialstate); 
     }
-    const appendDecimal = () =>{
-        if(initialstate){
-            setValue('0.'); 
-            setInitialState(false);
-            setDcheck(true);
-            return;
-        }
-        if (dcheck) {
-            return;
-        }
-        setValue(value.concat('.'));
-        setDcheck(true);
+    const AppendOper = (e)=>{
+        if(!initialstate) Equals();
+        setOper(e.target.innerHTML);
+        setEvalState(false);
     }
-    const appendMemory =()=>{
-        if(lastvalue===''){
-            alert("No answer in memory!");
-            return;
-        }
-        if(lastvalue.indexOf('.')!==-1){
-            setDcheck(true);
-        }
-        if(initialstate){
-            setValue(lastvalue); 
-            setInitialState(false);
-            return;
-        }
-        if(!['+','-','*','/','('].includes(value.slice(-1))){
-            return;
-        }
-        setValue(value.concat(lastvalue)); 
-    }
-    const openPar = () =>{
-        if(initialstate||value==='0'){
-            setValue('('); 
-            setInitialState(false);
-            return;
-        }
-        if(!['+','-','*','/','('].includes(value.slice(-1))){
-            return;
-        }
-        setValue(value.concat('('));
-           
-    }
-    const closePar = () =>{
-        if(value==='0'){
-            return;
-        }
-        if(['+','-','*','/','('].includes(value.slice(-1))){
-            return;
-        }
-        if(count_chars(value,')')===count_chars(value,'(')){
-            return;
-        }
-        setValue(value.concat(')'));  
-    }
-    const clear =()=>{
-        setValue('0');
+    const Equals=()=>{
+        evalstate?setCurVal(Operation(curval,preval,oper)):setCurVal(Operation(preval,curval,oper));  
         setInitialState(true);
-    }
-    const deleteValue = () =>{  
-        if (['+','-','*','/','('].includes(value.slice(-1))){
-            setDcheck(true);
-        }
-        if(value.slice(-1)==='.'){
-            setDcheck(false);
-        }
-        if(value.length===1){
-            setValue('0');
-            setInitialState(true);
-        }
-        else{
-            setValue(value.slice(0,-1))
+        if(!evalstate){
+            setEvalState(true);
+            setPreVal(curval);
         }      
     }
-    const calculate = () =>{
-        if(count_chars(value,')')!==count_chars(value,'(')){
-            alert("Must close all patentheses before evaluating!");
-            return;
+    useEffect(()=>{
+        if(initialstate && !evalstate){
+            setPreVal(curval);
         }
-        let new_value = eval(value).toString()
-        setValue(new_value);
-        setLastValue(new_value);
-        setDcheck(false);
+    })
+    const clear =()=>{
+        setCurVal('0');
+        setPreVal('0');
+        setOper('');
         setInitialState(true);
+        setEvalState(false);
+    }
+    const deleteValue = () =>{  
+        setCurVal(curval.slice(0,-1))
+        if(curval.length===1){
+            clear();      
+        }      
     }
     return(
         <>
-            <CalcDisplay sz={value.length}>{value}</CalcDisplay>
+            <CalcDisplay sz={curval.length}>{curval}</CalcDisplay>
             <CalcButton wd='2' onClick={clear}>AC</CalcButton>
-            <CalcButton wd ='2' onClick={deleteValue}>DEL</CalcButton>
-            <CalcButton onClick={appendMemory}>ANS</CalcButton>
-            <CalcButton onClick={openPar}>(</CalcButton>
-            <CalcButton onClick={closePar}>)</CalcButton>
-            <CalcButton onClick={appendOper}>/</CalcButton>
-            <CalcButton onClick={appendValue}>7</CalcButton>
-            <CalcButton onClick={appendValue}>8</CalcButton>
-            <CalcButton onClick={appendValue}>9</CalcButton>
-            <CalcButton onClick={appendOper}>*</CalcButton>
-            <CalcButton onClick={appendValue}>4</CalcButton>
-            <CalcButton onClick={appendValue}>5</CalcButton>
-            <CalcButton onClick={appendValue}>6</CalcButton>
-            <CalcButton onClick={appendOper}>-</CalcButton>
-            <CalcButton onClick={appendValue}>1</CalcButton>
-            <CalcButton onClick={appendValue}>2</CalcButton>
-            <CalcButton onClick={appendValue}>3</CalcButton>
-            <CalcButton onClick={appendOper}>+</CalcButton>
-            <CalcButton onClick={appendValue}>0</CalcButton>
-            <CalcButton onClick={appendDecimal}>.</CalcButton>
-            <CalcButton wd='2' onClick={calculate}>=</CalcButton>
+            <CalcButton onClick={deleteValue}>DEL</CalcButton>
+            <CalcButton onClick={AppendOper}>/</CalcButton>
+            <CalcButton onClick={AppendValue}>7</CalcButton>
+            <CalcButton onClick={AppendValue}>8</CalcButton>
+            <CalcButton onClick={AppendValue}>9</CalcButton>
+            <CalcButton onClick={AppendOper}>*</CalcButton>
+            <CalcButton onClick={AppendValue}>4</CalcButton>
+            <CalcButton onClick={AppendValue}>5</CalcButton>
+            <CalcButton onClick={AppendValue}>6</CalcButton>
+            <CalcButton onClick={AppendOper}>-</CalcButton>
+            <CalcButton onClick={AppendValue}>1</CalcButton>
+            <CalcButton onClick={AppendValue}>2</CalcButton>
+            <CalcButton onClick={AppendValue}>3</CalcButton>
+            <CalcButton onClick={AppendOper}>+</CalcButton>
+            <CalcButton onClick={AppendValue}>0</CalcButton>
+            <CalcButton onClick={AppendValue}>.</CalcButton>
+            <CalcButton wd='2' onClick={Equals}>=</CalcButton>
         </>
     );
 }
